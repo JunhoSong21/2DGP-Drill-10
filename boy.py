@@ -145,7 +145,7 @@ class AutoRun:
 
 class Boy:
     def __init__(self):
-        self.x, self.y = 400, 40
+        self.x, self.y = 400, 90
         self.frame = 0
         self.dir = 0
         self.action = 3

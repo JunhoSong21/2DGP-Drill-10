@@ -1,12 +1,12 @@
 from pico2d import load_image
 import game_world
 
-class Ball:
+class SmallBall:
     image = None
 
     def __init__(self, x =  400, y = 300, velocity = 1):
-        if Ball.image == None:
-            Ball.image = load_image('ball21x21.png')
+        if SmallBall.image == None:
+            SmallBall.image = load_image('ball21x21.png')
         self.x, self.y, self.velocity = x, y, velocity
 
     def draw(self):
@@ -17,3 +17,5 @@ class Ball:
 
         if self.x < 25 or self.x > 800 - 25:
             game_world.remove_object(self)
+
+class
