@@ -29,3 +29,9 @@ def draw():
     pico2d.clear_canvas()
     image.draw(400, 300)
     pico2d.update_canvas()
+
+def pause():
+    pass
+
+def resume():
+    pass

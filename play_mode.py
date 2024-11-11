@@ -5,6 +5,7 @@ import pico2d
 import game_world
 from grass import *
 from boy import *
+from bird import *
 
 def handle_events():
     global running
@@ -34,6 +35,9 @@ def init():
     boy = Boy() # 영속 객체
     game_world.add_object(boy, 1)
 
+    bird = Bird()
+    game_world.add_object(bird, 1)
+
 def finish():
     game_world.clear()
 
@@ -44,3 +48,9 @@ def draw():
     pico2d.clear_canvas()
     game_world.render()
     pico2d.update_canvas()
+
+def pause():
+    pass
+
+def resume():
+    pass

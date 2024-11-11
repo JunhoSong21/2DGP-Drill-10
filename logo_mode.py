@@ -27,3 +27,9 @@ def draw():
 
 def handle_events():
     events = pico2d.get_events()
+
+def pause():
+    pass
+
+def resume():
+    pass

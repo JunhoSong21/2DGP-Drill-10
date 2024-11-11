@@ -1,7 +1,12 @@
 from pico2d import *
 from state_machine import *
 import game_world
+import game_framework
 from ball import *
+
+TIME_PER_ACTION = 0.5
+ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
+FRAMES_PER_ACTION = 8
 
 class Idle:
     @staticmethod
@@ -31,14 +36,14 @@ class Idle:
 
     @staticmethod
     def do(boy):
-        boy.frame = (boy.frame + 1) % 8
+        boy.frame = (boy.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
         if get_time() - boy.wait_time > 5:
             boy.state_machine.add_event(('TIME_OUT', 0))
 
     @staticmethod
     def draw(boy):
         boy.image.clip_draw(
-            boy.frame * 100, boy.action * 100, 100, 100,
+            int(boy.frame) * 100, boy.action * 100, 100, 100,
             boy.x, boy.y)
 
 class Sleep:
@@ -55,20 +60,20 @@ class Sleep:
 
     @staticmethod
     def do(boy):
-        boy.frame = (boy.frame + 1) % 8
+        boy.frame = (boy.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
 
     @staticmethod
     def draw(boy):
         if boy.face_dir == 1: # 오른쪽 바라보는 상태에서 Sleep
             boy.image.clip_composite_draw(
-                boy.frame * 100, 300, 100, 100,
+                int(boy.frame) * 100, 300, 100, 100,
                 3.141592 / 2, # 90도 회전
                 '', # 좌우상하 반전 X
                 boy.x - 25, boy.y - 25, 100, 100)
             
         elif boy.face_dir == -1:
             boy.image.clip_composite_draw(
-                boy.frame * 100, 200, 100, 100,
+                int(boy.frame) * 100, 200, 100, 100,
                 -3.141592 / 2, # 90도 회전
                 '', # 좌우상하 반전 X
                 boy.x + 25, boy.y - 25, 100, 100)
@@ -91,17 +96,22 @@ class Run:
 
     @staticmethod
     def do(boy):
-        boy.x += boy.dir * 5
+        boy.frame = (boy.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
+        PIXEL_PER_METER = (10.0 / 0.3)
+        RUN_SPEED_KMPH = 20.0
+        RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
+        RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
+        RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
+        boy.x += boy.dir * RUN_SPEED_PPS * game_framework.frame_time
         if boy.x >= 780:
             boy.x = 780
         elif boy.x <= 20:
             boy.x = 20
-        boy.frame = (boy.frame + 1) % 8
 
     @staticmethod
     def draw(boy):
         boy.image.clip_draw(
-            boy.frame * 100, boy.action * 100, 100, 100,
+            int(boy.frame) * 100, boy.action * 100, 100, 100,
             boy.x, boy.y)
 
 class AutoRun:
@@ -123,7 +133,13 @@ class AutoRun:
 
     @staticmethod
     def do(boy):
-        boy.x += boy.dir * 10
+        PIXEL_PER_METER = (10.0 / 0.3)
+        RUN_SPEED_KMPH = 20.0
+        RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
+        RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
+        RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
+        boy.x += boy.dir * RUN_SPEED_PPS * game_framework.frame_time * 2
+        
         if boy.x >= 780:
             boy.dir = -1
             boy.action = 0
@@ -132,7 +148,7 @@ class AutoRun:
             boy.dir = 1
             boy.action = 1
             boy.x = 20
-        boy.frame = (boy.frame + 1) % 8
+        boy.frame = (boy.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
 
         if get_time() - boy.wait_time > 5:
             boy.state_machine.add_event(('AUTORUN_TIME_OUT', 0))
@@ -140,7 +156,7 @@ class AutoRun:
     @staticmethod
     def draw(boy):
         boy.image.clip_draw(
-            boy.frame * 100, boy.action * 100, 100, 100,
+            int(boy.frame) * 100, boy.action * 100, 100, 100,
             boy.x, boy.y + 10, 150, 150)
 
 class Boy:
@@ -150,6 +166,7 @@ class Boy:
         self.dir = 0
         self.action = 3
         self.image = load_image('animation_sheet.png')
+        self.font = load_font('ENCR10B.TTF', 16)
         self.state_machine = StateMachine(self)
         self.state_machine.start(Idle) # 초기 상태 Sleep 으로 설정
         self.state_machine.set_transitions(
@@ -160,6 +177,7 @@ class Boy:
                 Sleep: {right_down: Run, left_down: Run, right_up: Run, left_up: Run, space_down: Idle, a_down: AutoRun}
             }
         )
+        self.set_item('NONE')
 
     def update(self):
         self.state_machine.update()
@@ -171,8 +189,16 @@ class Boy:
 
     def draw(self):
         self.state_machine.draw()
+        self.font.draw(self.x - 60, self.y + 50, f'(Time: {get_time():.2f})', (255, 255, 0))
+
+    def set_item(self, item):
+        self.item = item
 
     def fire_ball(self):
-        print('FIRED BALL')
-        ball = Ball(self.x, self.y, self.face_dir * 10)
-        game_world.add_object(ball, 1)
+        if self.item == 'SmallBall':
+            ball = SmallBall(self.x, self.y, self.face_dir * 10)
+            game_world.add_object(ball, 1)
+        elif self.item == 'BigBall':
+            ball = BigBall(self.x, self.y, self.face_dir * 10)
+            game_world.add_object(ball, 1)
+        
